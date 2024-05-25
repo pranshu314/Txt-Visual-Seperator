@@ -1,3 +1,4 @@
+import os
 import sys
 
 from dotenv import load_dotenv
@@ -47,7 +48,9 @@ def segment_image(path):
     model = YOLO("yolov8n-seg.pt")
 
     img = cv2.imread(path)
-    out_img = model(img, save_crop=True)
+
+    # out_img = model(img, save_crop=True)
+    out_img = model(img, show=True)
 
 
 def main():
@@ -61,6 +64,14 @@ def main():
         return -1
 
     image_path = sys.argv[1]
+
+    if os.path.isfile(image_path) is False:
+        print(f"    {terminal_red}Error:{terminal_reset} Could not load image")
+        print(
+            f"    {terminal_yellow}Warning:{terminal_reset} {image_path} is not a file."
+        )
+        return
+
     # detect_text(image_path)
     segment_image(image_path)
 
