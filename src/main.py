@@ -1,5 +1,6 @@
 import os
 import sys
+from shutil import rmtree
 
 from dotenv import load_dotenv
 import cv2
@@ -25,28 +26,49 @@ def detect_text(path):
     response = client.text_detection(image=image)
     texts = response.text_annotations
 
-    print("Texts:")
-
+    txt_arr = []
     for text in texts:
-        print(f'\n"{text.description}"')
+        # print(f'\n"{text.description}"')
 
         vertices = [
             f"({vertex.x},{vertex.y})" for vertex in text.bounding_poly.vertices
         ]
 
-        print("bounds: {}".format(",".join(vertices)))
+        # print("bounds: {}".format(",".join(vertices)))
+
+        txt_arr.append([text.description, vertices])
 
     if response.error.message:
+        print(f"{terminal_red}Error:{terminal_reset} Google API Error")
         raise Exception(
             "{}\nFor more info on error messages, check: "
             "https://cloud.google.com/apis/design/errors".format(response.error.message)
         )
 
+    return txt_arr
 
-def get_images():
+
+def get_images(proj_name):
     """Retruns all the segmented images"""
     images = []
-    dir_obj = os.scandir(os.curdir + "/runs/segment/predict/crops")
+
+    predict_path = os.path.abspath(os.curdir) + "/runs/segment/predict"
+    new_path = f"{os.path.abspath(os.curdir)}/runs/segment/{proj_name}_predict"
+    try:
+        os.rename(predict_path, new_path)
+    except FileNotFoundError:
+        print(f"{terminal_red}Error:{terminal_reset} No such directory")
+        sys.exit()
+    except PermissionError:
+        print(f"{terminal_red}Error:{terminal_reset} Permission Denied")
+        rmtree(predict_path)
+        sys.exit()
+    except OSError as error:
+        print(f"{terminal_red}Error:{terminal_reset} {error}")
+        rmtree(predict_path)
+        sys.exit()
+
+    dir_obj = os.scandir(new_path + "/crops/")
     for entry in dir_obj:
         if entry.is_dir():
             entry_obj = os.scandir(entry.path)
@@ -60,7 +82,10 @@ def get_html(path):
     """Returns the html document with text and segmented image"""
 
     output_name = input("Enter the name of the output file without extension: ")
-    images = get_images()
+
+    txt = detect_text(path)
+    segment_image(path)
+    images = get_images(output_name)
 
     with open(os.curdir + f"/output/{output_name}.html", "w") as html:
         html.write("<!DOCTYPE html>")
@@ -81,13 +106,15 @@ def get_html(path):
         html.write("<h2>Original Image</h2>")
         html.write(f"<img src={path} alt='Original Image' width='650'>")
         html.write("<h2>Text in the Image</h2>")
-        # TODO: Write the obtained text from OCR
-        html.write("<p>TODO<p>")
+        html.write("<ul>")
+        for entry in txt:
+            html.write(f"<li><p>{entry[0]} <sub>Bounds: {entry[1]}</sub> </p>")
+        html.write("</ul>")
         html.write("<h2>Segmented Image Parts</h2>")
         for entry in images:
             html.write("<figure>")
             html.write(
-                f"<img src='../{entry[2]}' alt='{entry[0]+" "+entry[1]}' width='500'>"
+                f"<img src='{entry[2]}' alt='{entry[0]+" "+entry[1]}' width='500'>"
             )
             html.write(f"<figcaption>Object Recognized: {entry[0]}</figcaption>")
             html.write("</figure>")
@@ -96,6 +123,12 @@ def get_html(path):
         html.write("</body>")
         html.write("</html>")
         html.close()
+
+    print()
+    print(
+        f"You can visit the generated page at: file://{os.path.abspath(os.curdir) + '/output/' + output_name + '.html'}"
+    )
+    print()
 
 
 def segment_image(path):
