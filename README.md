@@ -8,8 +8,8 @@ The program uses Google Cloud Vision API for OCR and YOLOv8 for image segmentati
 - The program takes a command line argument, which is the path to the image.
 - It then makes an html file with the output in the output directory.
 - It also creates a runs directory which stores all the past segmentation results.
-  <br>
-  _Note:_ There are two sample output files namely `person.html` and `winter.html` in the output directory. To view the demos correctly please run the demos using `make person` and `make winter`
+
+_Note:_ There are two sample output files namely `person.html` and `winter.html` in the output directory. To view the demos correctly please run the demos using `make person` and `make winter`
 
 ## How to run
 
