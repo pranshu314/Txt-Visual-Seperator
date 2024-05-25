@@ -1,5 +1,7 @@
 import sys
+
 from dotenv import load_dotenv
+import cv2
 
 load_dotenv()
 
@@ -39,6 +41,15 @@ def detect_text(path):
         )
 
 
+def segment_image(path):
+    from ultralytics import YOLO
+
+    model = YOLO("yolov8n-seg.pt")
+
+    img = cv2.imread(path)
+    out_img = model(img, save_crop=True)
+
+
 def main():
     """Runs the OCR and Image-Segmentation tasks."""
     if len(sys.argv) != 2:
@@ -50,7 +61,8 @@ def main():
         return -1
 
     image_path = sys.argv[1]
-    detect_text(image_path)
+    # detect_text(image_path)
+    segment_image(image_path)
 
 
 if __name__ == "__main__":
